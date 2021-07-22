@@ -68,7 +68,7 @@ def delete_paragraph(paragraph):
     p.getparent().remove(p)
     p._p = p._element = None
 
-fonts = {
+font_styles = {
     'b': 'bold',
     'strong': 'bold',
     'em': 'italic',
@@ -78,6 +78,11 @@ fonts = {
     'sup': 'superscript',
     'sub': 'subscript',
     'th': 'bold',
+}
+
+font_names = {
+    'code': 'Courier',
+    'pre': 'Courier',
 }
 
 class HtmlToDocx(HTMLParser):
@@ -309,7 +314,7 @@ class HtmlToDocx(HTMLParser):
             return
 
         self.tags[tag] = current_attrs
-        if tag == 'p':
+        if tag in ['p', 'pre']:
             self.paragraph = self.doc.add_paragraph()
 
         elif tag == 'li':
@@ -331,7 +336,7 @@ class HtmlToDocx(HTMLParser):
             return
 
         # set new run reference point in case of leading line breaks
-        if tag == 'p' or tag == 'li':
+        if tag in ['p', 'li', 'pre']:
             self.run = self.paragraph.add_run()
 
         # add style
@@ -375,6 +380,10 @@ class HtmlToDocx(HTMLParser):
         if self.skip:
             return
 
+        # Only remove white space if we're not in a pre block.
+        if 'pre' not in self.tags:
+            data = remove_whitespace(data)
+
         if not self.paragraph:
             self.paragraph = self.doc.add_paragraph()
 
@@ -393,12 +402,15 @@ class HtmlToDocx(HTMLParser):
                     style = self.parse_dict_string(span['style'])
                     self.add_styles_to_run(style)
 
-
-            # add font style
+            # add font style and name
             for tag in self.tags:
-                if tag in fonts:
-                    font_style = fonts[tag]
+                if tag in font_styles:
+                    font_style = font_styles[tag]
                     setattr(self.run.font, font_style, True)
+
+                if tag in font_names:
+                    font_name = font_names[tag]
+                    self.run.font.name = font_name
 
     def ignore_nested_tables(self, tables_soup):
         """
@@ -446,9 +458,7 @@ class HtmlToDocx(HTMLParser):
     def run_process(self, html):
         if self.bs and BeautifulSoup:
             self.soup = BeautifulSoup(html, 'html.parser')
-            html = remove_whitespace(str(self.soup))
-        else:
-            html = remove_whitespace(html)
+            html = str(self.soup)
         if self.include_tables:
             self.get_tables()
         self.feed(html)
