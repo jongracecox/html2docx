@@ -6,4 +6,6 @@ from .context import HtmlToDocx, test_dir
 filename = os.path.join(test_dir, 'tables2.html')
 d = HtmlToDocx()
 
+d.table_style = 'Light Grid Accent 6'
+
 d.parse_html_file(filename)
